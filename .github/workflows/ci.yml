@@ -23,23 +23,23 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install flake8 uvicorn
+          pip install flake8 pytest uvicorn
 
       - name: Run tests
         run: pytest
 
       - name: Lint code
-        run: flake8
+        run: flake8 .
 
       - name: Build Docker image
-        run: docker build -t projet-ci-cd .
+        run: docker build -t projet-ci-cd:latest .
 
       - name: Test Docker container
         run: |
-          docker run -d --name test-container -p 8000:8000 projet-ci-cd
+          docker run -d --name test-container -p 8000:8000 projet-ci-cd:latest
           sleep 5
-          docker ps
           docker stop test-container
+          docker rm test-container
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,16 +50,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf "%s" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
       - name: Deploy to VM
         run: |
-          # Créer un fichier temporaire avec la clé privée
-          echo "${{ secrets.SSH_KEY }}" > key.pem
-          chmod 600 key.pem
-
-          # Connexion SSH et déploiement Docker
-          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            docker pull projet-ci-cd:latest &&
-            docker stop app || true &&
-            docker rm app || true &&
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            docker stop app || true
+            docker rm app || true
             docker run -d --name app -p 8000:8000 projet-ci-cd:latest
           "
