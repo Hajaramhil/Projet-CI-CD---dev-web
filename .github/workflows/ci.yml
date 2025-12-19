@@ -41,14 +41,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: ci
-    if: github.ref == 'refs/heads/main'
 
     steps:
-      # 1️⃣ Récupérer le code
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # 2️⃣ Configurer la clé SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -56,15 +50,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      # 3️⃣ Tester la connexion SSH (optionnel)
-      - name: Test SSH connection
-        run: ssh -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'Connexion OK'"
-
-      # 4️⃣ Déployer l'image Docker sur la VM
-      - name: Deploy Docker container
+      - name: Deploy to VM (simulation)
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            docker stop app || true
-            docker rm app || true
-            docker run -d --name app -p 8000:8000 projet-ci-cd:latest
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            echo 'Connexion OK'
+            docker ps
           "
