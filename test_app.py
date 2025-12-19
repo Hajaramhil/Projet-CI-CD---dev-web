@@ -12,4 +12,4 @@ def test_home():
 
 def test_home_content():
     response = client.get("/")
-    assert response.json()["message"] == "CI/CD project works"
+    assert response.json()["messagee"] == "CI/CD project works"
